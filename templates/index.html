@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Фишинг-детектор | Кибербезопасность</title>
+    <title>Фишинг-детектор</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 
@@ -19,7 +19,7 @@
                             <div class="terminal-dot dot-yellow"></div>
                             <div class="terminal-dot dot-green"></div>
                         </div>
-                        <div class="terminal-title">phish_detector.exe</div>
+                        <div class="terminal-title">phishing_detector.exe</div>
                     </div>
 
                     <div class="game-info">
@@ -31,12 +31,15 @@
                         <p id="question-text">Загрузка системы безопасности...</p>
                     </div>
 
-                    <div class="buttons">
-                        <button class="btn phishing" onclick="answer('phishing')">🎣 PHISHING</button>
-                        <button class="btn legit" onclick="answer('legit')">✅ LEGIT</button>
+                    <div class="actions-container">
+                        <div class="answer-buttons" id="answerButtons">
+                            <button class="btn phishing" onclick="answer('phishing')">🎣 Фишинг</button>
+                            <button class="btn legit" onclick="answer('legit')">✅ Обычное сообщение</button>
+                        </div>
+                        <button class="next-btn hidden" id="nextBtn" onclick="nextQuestion()">-> Следующий
+                            вопрос</button>
+                        <div id="message" class="message"></div>
                     </div>
-
-                    <div id="message" class="message"></div>
                 </div>
             </div>
         </div>
@@ -46,6 +49,7 @@
     <script>
         let currentQid = 1;
         let totalQuestions = 0;
+        let waitingForNext = false;
 
         function loadQuestion() {
             fetch('/question')
@@ -58,7 +62,16 @@
                         document.getElementById('total').innerText = data.total;
                         totalQuestions = data.total;
                         currentQid = data.id;
-                        document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
+
+                        document.querySelectorAll('.btn').forEach(btn => {
+                            btn.disabled = false;
+                        });
+
+                        document.getElementById('answerButtons').classList.remove('hidden');
+                        document.getElementById('nextBtn').classList.add('hidden');
+                        document.getElementById('message').innerHTML = '';
+
+                        waitingForNext = false;
                     } else {
                         window.location.href = '/result';
                     }
@@ -66,7 +79,12 @@
         }
 
         function answer(userAnswer) {
+            if (waitingForNext) return;
+
             document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="correct">⏳ Обработка...</div>`;
 
             fetch('/answer', {
                 method: 'POST',
@@ -75,7 +93,6 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    const messageDiv = document.getElementById('message');
                     if (data.correct) {
                         messageDiv.innerHTML = `<div class="correct">✓ ПРАВИЛЬНО! ${data.explanation}</div>`;
                     } else {
@@ -84,14 +101,29 @@
 
                     document.getElementById('score').innerText = data.score;
 
-                    setTimeout(() => {
-                        if (data.finished) {
-                            window.location.href = '/result';
-                        } else {
-                            loadQuestion();
-                            messageDiv.innerHTML = '';
-                        }
-                    }, 2000);
+                    if (data.finished) {
+                        document.getElementById('answerButtons').classList.add('hidden');
+                        const nextBtn = document.getElementById('nextBtn');
+                        nextBtn.innerHTML = '🏆 ЗАВЕРШИТЬ ТЕСТ';
+                        nextBtn.classList.remove('hidden');
+                        waitingForNext = true;
+                    } else {
+                        document.getElementById('answerButtons').classList.add('hidden');
+                        document.getElementById('nextBtn').classList.remove('hidden');
+                        waitingForNext = true;
+                    }
+                });
+        }
+
+        function nextQuestion() {
+            fetch('/question')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.finished) {
+                        window.location.href = '/result';
+                    } else {
+                        loadQuestion();
+                    }
                 });
         }
 

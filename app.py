@@ -64,14 +64,13 @@ def answer():
     
     if is_correct:
         session['score'] += 1
-    
-    # ИСПРАВЛЕНО: используем 'text' вместо 'question'
+
     session['answers'].append({
-        'text': q['text'],  # <-- ЭТО ВАЖНО!
+        'text': q['text'],  
         'user_answer': answer_user,
         'correct': is_correct,
         'explanation': q['explanation'],
-        'is_phishing': q['is_phishing']  # <-- и это
+        'is_phishing': q['is_phishing']  
     })
     
     session['current_index'] = idx + 1
