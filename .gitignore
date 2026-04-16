@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Результаты игроков (важно! чтобы не публиковать данные участников)
+results/
+*.json
+!questions.json
+
+# VS Code
+.vscode/
+
+# Системные файлы
+.DS_Store
+*.log

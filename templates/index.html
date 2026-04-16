@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фишинг-детектор | Кибербезопасность</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="monitor">
+        <div class="monitor-screen">
+            <div class="screen-bezel">
+                <div class="screen-content">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <div class="terminal-dot dot-red"></div>
+                            <div class="terminal-dot dot-yellow"></div>
+                            <div class="terminal-dot dot-green"></div>
+                        </div>
+                        <div class="terminal-title">phish_detector.exe</div>
+                    </div>
+
+                    <div class="game-info">
+                        <div class="score">Счет: <span id="score">0</span></div>
+                        <div class="progress">Вопрос <span id="current">1</span> / <span id="total">0</span></div>
+                    </div>
+
+                    <div class="question-card">
+                        <p id="question-text">Загрузка системы безопасности...</p>
+                    </div>
+
+                    <div class="buttons">
+                        <button class="btn phishing" onclick="answer('phishing')">🎣 PHISHING</button>
+                        <button class="btn legit" onclick="answer('legit')">✅ LEGIT</button>
+                    </div>
+
+                    <div id="message" class="message"></div>
+                </div>
+            </div>
+        </div>
+        <div class="monitor-stand"></div>
+    </div>
+
+    <script>
+        let currentQid = 1;
+        let totalQuestions = 0;
+
+        function loadQuestion() {
+            fetch('/question')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.finished) {
+                        document.getElementById('question-text').innerHTML = data.text;
+                        document.getElementById('score').innerText = data.score;
+                        document.getElementById('current').innerText = data.id;
+                        document.getElementById('total').innerText = data.total;
+                        totalQuestions = data.total;
+                        currentQid = data.id;
+                        document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
+                    } else {
+                        window.location.href = '/result';
+                    }
+                });
+        }
+
+        function answer(userAnswer) {
+            document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+
+            fetch('/answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: userAnswer })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const messageDiv = document.getElementById('message');
+                    if (data.correct) {
+                        messageDiv.innerHTML = `<div class="correct">✓ ПРАВИЛЬНО! ${data.explanation}</div>`;
+                    } else {
+                        messageDiv.innerHTML = `<div class="wrong">✗ ОШИБКА! ${data.explanation}</div>`;
+                    }
+
+                    document.getElementById('score').innerText = data.score;
+
+                    setTimeout(() => {
+                        if (data.finished) {
+                            window.location.href = '/result';
+                        } else {
+                            loadQuestion();
+                            messageDiv.innerHTML = '';
+                        }
+                    }, 2000);
+                });
+        }
+
+        loadQuestion();
+    </script>
+</body>
+
+</html>
