@@ -25,7 +25,7 @@ def index():
     
     session['score'] = 0
     session['current_index'] = 0
-    session['questions'] = random.sample(questions, min(5, len(questions)))
+    session['questions'] = random.sample(questions, min(15, len(questions)))
     session['answers'] = []
     session['start_time'] = datetime.now().isoformat()
     session.modified = True
