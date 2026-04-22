@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 import json
 import random
 import os
+import csv
 from datetime import datetime
 
 app = Flask(__name__)
@@ -17,9 +18,44 @@ RESULTS_DIR = 'results'
 if not os.path.exists(RESULTS_DIR):
     os.makedirs(RESULTS_DIR)
 
+def save_results_to_files(session_data):
+    """Сохраняет результаты теста в JSON и CSV файлы"""
+    
+    user_id = session_data.get('user_id', 'unknown')
+    timestamp = datetime.now()
+    score = session_data.get('score', 0)
+    total = len(session_data.get('questions', []))
+    percent = (score / total * 100) if total > 0 else 0
+    
+    # Сохраняем JSON (используем user_id как имя файла)
+    json_filename = f"{user_id}.json"
+    json_data = {
+        'user_id': user_id,
+        'timestamp': timestamp.isoformat(),
+        'score': score,
+        'total': total,
+        'percent': percent,
+        'answers': session_data.get('answers', [])
+    }
+    
+    json_filepath = os.path.join(RESULTS_DIR, json_filename)
+    with open(json_filepath, 'w', encoding='utf-8') as f:
+        json.dump(json_data, f, indent=2, ensure_ascii=False)
+    
+    # Сохраняем CSV
+    csv_filename = os.path.join(RESULTS_DIR, 'all_results.csv')
+    file_exists = os.path.isfile(csv_filename)
+    
+    with open(csv_filename, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['user_id', 'timestamp', 'score', 'total', 'percent'])
+        writer.writerow([user_id, timestamp.isoformat(), score, total, round(percent, 1)])
+    
+    return True
+
 @app.route('/')
 def index():
-    # Генерируем уникальный ID для сессии
     if 'user_id' not in session:
         session['user_id'] = datetime.now().strftime('%Y%m%d_%H%M%S_') + str(random.randint(1000, 9999))
     
@@ -89,22 +125,19 @@ def answer():
 
 @app.route('/result')
 def result():
-    # Проверяем, есть ли данные
     if 'questions' not in session or len(session.get('questions', [])) == 0:
         return redirect('/')
     
     total = len(session['questions'])
     score = session.get('score', 0)
     
-    # Вычисляем процент
     if total > 0:
         percent = (score / total) * 100
     else:
         percent = 0
     
-    # Добавим отладку
-    print(f"DEBUG: score={score}, total={total}, percent={percent}")
-    print(f"DEBUG: answers={session.get('answers', [])}")
+    # Сохраняем результаты
+    save_results_to_files(session)
     
     return render_template('result.html', 
                          score=score, 
@@ -114,17 +147,17 @@ def result():
 
 @app.route('/admin/results')
 def admin_results():
-    """Админ-страница для просмотра всех результатов"""
     results = []
     if os.path.exists(RESULTS_DIR):
         for filename in os.listdir(RESULTS_DIR):
-            if filename.endswith('.json'):
-                with open(f"{RESULTS_DIR}/{filename}", 'r', encoding='utf-8') as f:
-                    results.append(json.load(f))
+            if filename.endswith('.json') and not filename.startswith('all_'):
+                try:
+                    with open(f"{RESULTS_DIR}/{filename}", 'r', encoding='utf-8') as f:
+                        results.append(json.load(f))
+                except:
+                    pass
     
-    # Сортируем по баллам
-    results.sort(key=lambda x: x['score'], reverse=True)
-    
+    results.sort(key=lambda x: x.get('score', 0), reverse=True)
     return render_template('admin.html', results=results)
 
 if __name__ == '__main__':
