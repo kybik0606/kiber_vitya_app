@@ -2,15 +2,77 @@
 venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
 
-# Результаты игроков (важно! чтобы не публиковать данные участников)
+# Виртуальное окружение
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Результаты игроков (личные данные участников)
 results/
 *.json
 !questions.json
+!package.json
+!tsconfig.json
+
+# Файлы PyInstaller (сборка .exe)
+*.exe
+*.manifest
+*.pdb
 
 # VS Code
 .vscode/
+*.code-workspace
+
+# IDE и редакторы
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Логи
+*.log
+*.csv
+!requirements.csv
+
+# Файлы окружения
+.env
+.env.local
+.env.*.local
+
+# Flask
+instance/
+.webassets-cache
+
+# Docker
+*.tar
+*.tar.gz
+
+# Временные файлы
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
 
 # Системные файлы
-.DS_Store
-*.log
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Секреты и ключи
+*.key
+*.pem
+*.crt
+.secret

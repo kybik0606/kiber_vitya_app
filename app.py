@@ -4,17 +4,39 @@ import random
 import os
 import csv
 from datetime import datetime
+import webbrowser
+import threading
+import sys
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey123'
 
-# Загружаем вопросы
-with open('questions.json', 'r', encoding='utf-8') as f:
+# Функция для получения правильного пути к файлам (работает в .exe)
+def resource_path(relative_path):
+    """Получить абсолютный путь к файлу, работает и для .exe и для обычного скрипта"""
+    try:
+        # PyInstaller создает временную папку и хранит путь в _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
+# Загружаем вопросы (используем resource_path)
+questions_path = resource_path('questions.json')
+with open(questions_path, 'r', encoding='utf-8') as f:
     data = json.load(f)
     questions = data['questions']
 
-# Папка для сохранения результатов
-RESULTS_DIR = 'results'
+# Папка для сохранения результатов - создаем в той же папке, где находится .exe
+# Или в текущей директории при обычном запуске
+if getattr(sys, 'frozen', False):
+    # Если запущены из .exe
+    RESULTS_DIR = os.path.join(os.path.dirname(sys.executable), 'results')
+else:
+    # Если запущены как обычный скрипт
+    RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+
 if not os.path.exists(RESULTS_DIR):
     os.makedirs(RESULTS_DIR)
 
@@ -152,7 +174,8 @@ def admin_results():
         for filename in os.listdir(RESULTS_DIR):
             if filename.endswith('.json') and not filename.startswith('all_'):
                 try:
-                    with open(f"{RESULTS_DIR}/{filename}", 'r', encoding='utf-8') as f:
+                    filepath = os.path.join(RESULTS_DIR, filename)
+                    with open(filepath, 'r', encoding='utf-8') as f:
                         results.append(json.load(f))
                 except:
                     pass
@@ -160,5 +183,9 @@ def admin_results():
     results.sort(key=lambda x: x.get('score', 0), reverse=True)
     return render_template('admin.html', results=results)
 
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:5000")
+
 if __name__ == '__main__':
+    threading.Timer(1, open_browser).start()
     app.run(debug=False, host='0.0.0.0', port=5000)
